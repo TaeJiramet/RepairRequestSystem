@@ -1,0 +1,36 @@
+{% extends 'base.html' %} {% block content %}
+<h2>แดชบอร์ดระบบแจ้งซ่อม</h2>
+<div class="row my-4">
+  <div class="col-md-3">
+    <div class="card bg-primary text-white p-3">
+      <h5>งานทั้งหมด</h5>
+      <h3>{{ total }}</h3>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-warning text-white p-3">
+      <h5>รอดำเนินการ</h5>
+      <h3>{{ pending }}</h3>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-info text-white p-3">
+      <h5>กำลังซ่อม</h5>
+      <h3>{{ in_progress }}</h3>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-success text-white p-3">
+      <h5>เสร็จสิ้น</h5>
+      <h3>{{ completed }}</h3>
+    </div>
+  </div>
+</div>
+<a href="{{ url_for('create_repair') }}" class="btn btn-success"
+  >แจ้งซ่อมใหม่</a
+>
+<a href="{{ url_for('export_csv') }}" class="btn btn-secondary">ส่งออก CSV</a>
+<a href="{{ url_for('logout') }}" class="btn btn-danger float-end"
+  >ออกจากระบบ</a
+>
+{% endblock %}
