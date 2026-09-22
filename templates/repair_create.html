@@ -1,0 +1,60 @@
+{% extends 'base.html' %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card p-4 shadow-sm">
+      <h3 class="mb-3">แจ้งซ่อมใหม่</h3>
+      <form method="POST" enctype="multipart/form-data">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">อาคาร</label>
+            <input type="text" name="building" class="form-control" required />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">ห้อง</label>
+            <input type="text" name="room" class="form-control" required />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">ประเภทปัญหา</label>
+            <select name="problem_type" class="form-select" required>
+              <option value="electrical">ไฟฟ้า</option>
+              <option value="furniture">เฟอร์นิเจอร์</option>
+              <option value="computer">คอมพิวเตอร์</option>
+              <option value="aircon">แอร์</option>
+              <option value="other">อื่นๆ</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">ความเร่งด่วน</label>
+            <select name="urgency" class="form-select" required>
+              <option value="low">ต่ำ</option>
+              <option value="medium" selected>ปานกลาง</option>
+              <option value="high">สูง</option>
+            </select>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">รายละเอียดปัญหา</label>
+          <textarea name="description" class="form-control" rows="3" required></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">รูปภาพก่อนซ่อม (เลือกได้หลายรูป)</label>
+          <input
+            type="file"
+            name="images_before"
+            class="form-control"
+            multiple
+            accept="image/png,image/jpeg,image/gif,image/webp"
+          />
+          <div class="form-text">
+            รองรับ png, jpg, jpeg, gif, webp — ทุกไฟล์รวมกันไม่เกิน 5 MB ต่อการอัปโหลดแต่ละครั้ง
+          </div>
+        </div>
+        <button type="submit" class="btn btn-success">บันทึกใบแจ้งซ่อม</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">ยกเลิก</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

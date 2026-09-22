@@ -60,25 +60,63 @@ def generate_request_no():
     count = RepairRequest.query.count() + 1
     return f"RP-{now.strftime('%Y%m')}-{str(count).zfill(3)}"
 
-#@app.route('/login', methods=['GET', 'POST'])
-#def login():
- #   if request.method == 'POST':
-  #      username = request.form.get('username')
-   #     password = request.form.get('password')
-   #     user = User.query.filter_by(username=username).first()
-    #    if user and check_password_hash(user.password_hash, password):
-     #       login_user(user)
-      #      flash('เข้าสู่ระบบสำเร็จ!', 'success')
-       #     return redirect(url_for('dashboard'))
-        #flash('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'danger')
-#    return render_template('login.html')
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def save_images(files, image_type, repair_id):
+    """บันทึกรูปภาพที่อัปโหลดลง static/uploads และเพิ่มลงตาราง repair_images"""
+    saved = 0
+    for f in files:
+        if not f or not f.filename or not allowed_file(f.filename):
+            continue
+        fname = f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}_{repair_id}_{secure_filename(f.filename)}"
+        f.save(os.path.join(app.config['UPLOAD_FOLDER'], fname))
+        db.session.add(RepairImage(
+            repair_id=repair_id,
+            image_type=image_type,
+            image_path=f'uploads/{fname}'
+        ))
+        saved += 1
+    return saved
+
+
+@app.route('/')
+def index():
+    # หน้าแรกสาธารณะ: ไม่ต้อง login ก็ดูรายการแจ้งซ่อมและสถานะภาพรวมได้
+    total = RepairRequest.query.count()
+    pending = RepairRequest.query.filter_by(status='pending').count()
+    in_progress = RepairRequest.query.filter_by(status='in_progress').count()
+    completed = RepairRequest.query.filter_by(status='completed').count()
+    recent = RepairRequest.query.order_by(RepairRequest.id.desc()).limit(10).all()
+    return render_template('index.html', total=total, pending=pending,
+                           in_progress=in_progress, completed=completed, recent=recent)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password_hash, password):
+            login_user(user)
+            flash('เข้าสู่ระบบสำเร็จ!', 'success')
+            return redirect(url_for('dashboard'))
+        flash('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'danger')
+    return render_template('login.html')
+
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash('ออกจากระบบเรียบร้อยแล้ว', 'info')
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 @app.route('/dashboard')
 @login_required
@@ -87,7 +125,8 @@ def dashboard():
     pending = RepairRequest.query.filter_by(status='pending').count()
     in_progress = RepairRequest.query.filter_by(status='in_progress').count()
     completed = RepairRequest.query.filter_by(status='completed').count()
-    return render_template('dashboard.html', total=total, pending=pending, in_progress=in_progress, completed=completed)
+    recent = RepairRequest.query.order_by(RepairRequest.id.desc()).limit(10).all()
+    return render_template('dashboard.html', total=total, pending=pending, in_progress=in_progress, completed=completed, recent=recent)
 
 @app.route('/repair/create', methods=['GET', 'POST'])
 @login_required
@@ -105,9 +144,35 @@ def create_repair():
         )
         db.session.add(new_req)
         db.session.commit()
+
+        # บันทึกรูปภาพก่อนซ่อมที่อัปโหลดมาพร้อมฟอร์ม
+        save_images(request.files.getlist('images_before'), 'before', new_req.id)
+        db.session.commit()
+
         flash('สร้างใบแจ้งซ่อมเรียบร้อยแล้ว!', 'success')
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('repair_detail', repair_id=new_req.id))
     return render_template('repair_create.html')
+
+
+@app.route('/repair/<int:repair_id>', methods=['GET', 'POST'])
+@login_required
+def repair_detail(repair_id):
+    req = RepairRequest.query.get_or_404(repair_id)
+    if request.method == 'POST':
+        image_type = request.form.get('image_type', 'after')
+        if image_type not in ('before', 'after'):
+            image_type = 'after'
+        saved = save_images(request.files.getlist('images'), image_type, req.id)
+        db.session.commit()
+        if saved:
+            flash(f'อัปโหลดรูปภาพ {saved} รูป เรียบร้อยแล้ว', 'success')
+        else:
+            flash('ไม่พบไฟล์ หรือไฟล์ไม่ใช่รูปภาพที่รองรับ (png, jpg, jpeg, gif, webp)', 'danger')
+        return redirect(url_for('repair_detail', repair_id=req.id))
+    before_images = [i for i in req.images if i.image_type == 'before']
+    after_images = [i for i in req.images if i.image_type == 'after']
+    return render_template('repair_detail.html', req=req,
+                           before_images=before_images, after_images=after_images)
 
 @app.route('/export/csv')
 @login_required

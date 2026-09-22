@@ -1,0 +1,102 @@
+{% extends 'base.html' %} {% block content %}
+{% set problem_labels = {'electrical': 'ไฟฟ้า', 'furniture': 'เฟอร์นิเจอร์', 'computer': 'คอมพิวเตอร์', 'aircon': 'แอร์', 'other': 'อื่นๆ'} %}
+{% set urgency_labels = {'low': 'ต่ำ', 'medium': 'ปานกลาง', 'high': 'สูง'} %}
+{% set status_labels = {'pending': 'รอดำเนินการ', 'accepted': 'รับเรื่องแล้ว', 'in_progress': 'กำลังซ่อม', 'completed': 'เสร็จสิ้น'} %}
+<div class="d-flex justify-content-between align-items-center">
+  <h2>ใบแจ้งซ่อม {{ req.request_no }}</h2>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">กลับหน้าแดชบอร์ด</a>
+</div>
+
+<div class="card p-4 shadow-sm my-3">
+  <div class="row">
+    <div class="col-md-6">
+      <p class="mb-1"><strong>อาคาร:</strong> {{ req.building }}</p>
+      <p class="mb-1"><strong>ห้อง:</strong> {{ req.room }}</p>
+      <p class="mb-1"><strong>ประเภทปัญหา:</strong> {{ problem_labels.get(req.problem_type, req.problem_type) }}</p>
+      <p class="mb-1"><strong>ความเร่งด่วน:</strong> {{ urgency_labels.get(req.urgency, req.urgency) }}</p>
+      <p class="mb-0">
+        <strong>สถานะ:</strong>
+        <span class="badge bg-secondary">{{ status_labels.get(req.status, req.status) }}</span>
+      </p>
+    </div>
+    <div class="col-md-6">
+      <p class="mb-0"><strong>รายละเอียดปัญหา:</strong><br />{{ req.description }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <div class="card p-3 shadow-sm h-100">
+      <h5>ภาพก่อนซ่อม ({{ before_images|length }})</h5>
+      {% if before_images %}
+      <div class="d-flex flex-wrap gap-2">
+        {% for img in before_images %}
+        <a href="{{ url_for('static', filename=img.image_path) }}" target="_blank">
+          <img
+            src="{{ url_for('static', filename=img.image_path) }}"
+            class="rounded border"
+            style="width: 120px; height: 90px; object-fit: cover"
+            alt="ก่อนซ่อม"
+          />
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">ยังไม่มีรูปภาพ</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 shadow-sm h-100">
+      <h5>ภาพหลังซ่อม ({{ after_images|length }})</h5>
+      {% if after_images %}
+      <div class="d-flex flex-wrap gap-2">
+        {% for img in after_images %}
+        <a href="{{ url_for('static', filename=img.image_path) }}" target="_blank">
+          <img
+            src="{{ url_for('static', filename=img.image_path) }}"
+            class="rounded border"
+            style="width: 120px; height: 90px; object-fit: cover"
+            alt="หลังซ่อม"
+          />
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">ยังไม่มีรูปภาพ</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card p-4 shadow-sm my-3">
+  <h5>อัปโหลดรูปภาพเพิ่มเติม</h5>
+  <form method="POST" enctype="multipart/form-data">
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">ประเภทรูปภาพ</label>
+        <select name="image_type" class="form-select">
+          <option value="before">ก่อนซ่อม</option>
+          <option value="after" selected>หลังซ่อม</option>
+        </select>
+      </div>
+      <div class="col-md-8 mb-3">
+        <label class="form-label">เลือกรูปภาพ (เลือกได้หลายรูป)</label>
+        <input
+          type="file"
+          name="images"
+          class="form-control"
+          multiple
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          required
+        />
+        <div class="form-text">
+          รองรับ png, jpg, jpeg, gif, webp — ทุกไฟล์รวมกันไม่เกิน 5 MB ต่อการอัปโหลดแต่ละครั้ง
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">อัปโหลด</button>
+  </form>
+</div>
+{% endblock %}
